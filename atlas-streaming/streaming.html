@@ -1,84 +1,19 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>My RIPE Atlas Streaming Example</title>
+    <!-- The following file is needed for the streaming -->
+    <script src="https://atlas-stream.ripe.net/socket.io.js"></script>
+    <script>
+        // Create a connection
+        var socket = io("https://atlas-stream.ripe.net", { path : "/stream/socket.io" });
 
-    <script src="http://atlas-stream.ripe.net/socket.io.js"></script>
+        // Declare a callback to be executed when a measurement result is received
+        socket.on("atlas_result", function(result){
 
-</head>
-<body>
+            console.log("I received ", result); // Print the result in the console
 
-<div id="out"></div>
+	});
 
-<script>
+	// Subscribe to results coming from all the probes involved in the measurement 19230504
+        socket.emit("atlas_subscribe", { stream_type: "result", msm: 19230504 });
 
-    let msm_ids = [10001, 10101, 10201, 10301, 10401, 10501, 11001, 11101, 11201, 11301, 11401, 11501];
-    let attrs = ["result", "prb_id", "msm_id", "timestamp", "rt"];
-
-    let subscribeTo = (socket, prb, msm) => {
-        let query = {
-            stream_type: "result",
-
-            msm: msm,
-
-            // you can also subscribe with other filters
-            // more at https://atlas.ripe.net/docs/result-streaming/
-
-            // type: 'ping',
-            // sourcePrefix: '200/8',
-            // destinationPrefix: '200/8',
-
-            acceptedFields: attrs,
-
-            // buffering=true is the network-friendly way of subscribing to a stream
-            // buffering=false might clog the receiving end (your browser) if
-            // results are too many
-            buffering: true
-        };
-        if (prb) query.prb = parseInt(prb);
-        socket.emit("atlas_subscribe", query);
-    };
+    </script>
 
 
-    // Subscription to stream events
-    let socket = io("https://atlas-stream.ripe.net:443", {path: "/stream/socket.io"});
-
-    socket.on("atlas_error", (error) => {
-        console.error(error)
-    });
-    socket.on('atlas_result', (msm) => {
-        out.prepend(inspectObject(msm));
-    });
-
-    msm_ids.forEach(function(msm) {
-        subscribeTo(socket, null, msm);
-    });
-
-
-
-
-
-    // UI-related bits (printing, handling responses in batch)
-    let out = document.querySelector('#out');
-
-    let inspectObject = (_objs) => {
-
-        // support both buffering=true mode (.isArray)
-        // and buffering=fale (simple object)
-        if(!Array.isArray(_objs))
-            _objs = [_objs];
-
-        let objs = [];
-        for(let _obj of _objs) {
-            let obj = Object.keys(_obj).filter(key => attrs.includes(key)).reduce((o, k) => {o[k] = _obj[k]; return o}, {});
-            objs.push(obj);
-        }
-
-        return JSON.stringify(objs);
-    };
-
-</script>
-
-</body>
-</html>
